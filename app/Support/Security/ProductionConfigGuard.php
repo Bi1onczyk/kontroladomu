@@ -13,6 +13,9 @@ class ProductionConfigGuard
     /** Prefiksy kluczy TESTOWYCH Cloudflare Turnstile (zawsze przechodzą lub zawsze odrzucają). */
     private const TURNSTILE_TEST_PREFIXES = ['1x0000', '2x0000', '3x0000'];
 
+    /** Minimalna długość hasła szyfrującego archiwa kopii zapasowych. */
+    private const MIN_BACKUP_PASSWORD_LENGTH = 20;
+
     /**
      * Lista naruszeń (po polsku, do komunikatu wyjątku). Pusta = konfiguracja poprawna.
      *
@@ -62,6 +65,13 @@ class ProductionConfigGuard
 
         if (! config('auth.check_pwned')) {
             $violations[] = 'AUTH_CHECK_PWNED nie może być false.';
+        }
+
+        // Kopia plików zawiera .env (APP_KEY): bez szyfrowania archiwum jej wyciek ujawniłby sekrety (ADR-014).
+        // Adresy e-mail alarmów o kopiach (BACKUP_NOTIFICATION_EMAIL) i kontaktu dla Nominatim (NOMINATIM_CONTACT_EMAIL)
+        // NIE są wymagane: właściciel jeszcze ich nie ustalił. Brak = brak alarmów mailowych / brak zapytań do Nominatim.
+        if (strlen((string) config('backup.backup.password')) < self::MIN_BACKUP_PASSWORD_LENGTH) {
+            $violations[] = 'BACKUP_ARCHIVE_PASSWORD musi mieć co najmniej '.self::MIN_BACKUP_PASSWORD_LENGTH.' znaków (archiwa kopii są szyfrowane).';
         }
 
         return $violations;

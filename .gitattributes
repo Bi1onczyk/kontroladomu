@@ -9,3 +9,6 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Pliki testowe w formacie GUS (CRLF, BOM) zachowujemy bajt w bajt.
+tests/Fixtures/teryt/*.csv -text

@@ -80,7 +80,7 @@ Następnie:
 ```powershell
 & $php83 artisan test
 & .\vendor\bin\pint.bat --test
-& .\vendor\bin\phpstan.bat analyse --no-progress
+composer phpstan   # skrypt z composer.json: phpstan analyse --no-progress --memory-limit=1G
 npm run build
 ```
 
@@ -138,6 +138,60 @@ erDiagram
     password_reset_tokens { string email PK string token }
 ```
 
+Planowane dane geograficzne i ustawienia (zadanie 003, jeszcze niezaimplementowane; szczegóły w `docs/zadania/003-teryt-geokodowanie-kopie.md`):
+
+```mermaid
+erDiagram
+    teryt_municipalities ||--o{ teryt_localities : "gmina"
+    users ||--o{ settings : "updated_by"
+    teryt_municipalities {
+        bigint id PK
+        char code UK "7 znaków, WWPPGGR"
+        string name
+        char type_code
+        char county_code
+        string county_name
+        char voivodeship_code
+        string voivodeship_name
+        string name_search
+    }
+    teryt_localities {
+        bigint id PK
+        char simc UK "7 znaków"
+        char parent_simc "null dla samodzielnych"
+        bigint municipality_id FK "restrict"
+        string name
+        string name_search "index z is_part"
+        char kind_code
+        string kind
+        boolean is_part
+        string slug UK
+        decimal lat "10,7 null"
+        decimal lng "10,7 null"
+        string coordinates_source
+        timestamp geocoded_at
+        boolean is_active
+    }
+    geocode_cache {
+        bigint id PK
+        char query_hash UK "sha256, bez tekstu adresu"
+        string status "found / not_found"
+        decimal lat "null"
+        decimal lng "null"
+        string precision
+        string provider
+        timestamp expires_at "index"
+    }
+    settings {
+        bigint id PK
+        string group
+        string key UK
+        text value
+        text secret_value "cast encrypted"
+        bigint updated_by FK "nullOnDelete"
+    }
+```
+
 ## 5. Kluczowe procesy
 
 Procesy logowania, weryfikacji fachowca, rezerwacji, przypomnień i protokołów pozostają
@@ -186,7 +240,7 @@ i potwierdzeniu ograniczeń hostingu.
 
 - Komunikaty `validation.custom.name.*` i `validation.custom.email.*` w `lang/pl/validation.php` są globalne (dotyczą każdego pola o tej nazwie).
   Przy kolejnych formularzach z polem `name` (np. nazwa nieruchomości) trzeba nadać polu inną nazwę albo dopisać komunikat per formularz.
-- PHPStan wymaga większej pamięci niż domyślne 128 MB: `vendor/bin/phpstan analyse --memory-limit=1G`.
+- PHPStan wymaga większej pamięci niż domyślne 128 MB. Uruchamiaj go skryptem Composera: `composer phpstan` (to samo co `phpstan analyse --no-progress --memory-limit=1G`).
 - `APP_KEY` szyfruje sekrety 2FA; jego zmiana unieważnia 2FA wszystkich użytkowników (kopia `.env` poza serwerem).
 - Za Cloudflare ustaw `TRUSTED_PROXIES`, inaczej limity żądań „na IP" liczą adres proxy zamiast klienta.
 - Utrata telefonu i kodów awaryjnych: `php artisan user:reset-2fa adres@example.pl --reason="..."` (wpis w dzienniku `security_admin`).
@@ -211,3 +265,14 @@ i potwierdzeniu ograniczeń hostingu.
 - **Sesje:** wersja sesji konta (`users.session_version`) kończy sesje po resecie 2FA oraz zmianie/resecie hasła niezależnie od sterownika. Zalecany nadal `SESSION_DRIVER=database` (wiersze `sessions` są wtedy usuwane); `file` działa, ale nie jest sprawdzany przez strażnika.
 - **Kontrola IP za Cloudflare/home.pl (R6, obowiązkowa na stagingu):** zanim ruch trafi na produkcję, sprawdź `request()->ip()` (np. tymczasową trasą chronioną hasłem lub wpisem w logu) i potwierdź, że (1) pokazuje adres klienta, nie adres Cloudflare/home.pl, (2) nagłówek `X-Forwarded-For` wysłany spoza Cloudflare nie zmienia adresu. Jeśli między Cloudflare a PHP stoi jeszcze proxy home.pl, jego adres też musi być w `TRUSTED_PROXIES`, inaczej wszystkie żądania mają jedno IP (limity 10 rejestracji i 5 resetów/h działają globalnie). Listę zakresów Cloudflare przeglądaj raz na kwartał.
 - **Zmiana adresu e-mail:** `users.email` zmienia się dopiero po kliknięciu w link wysłany na NOWY adres (kolumna `pending_email`). Wolny i zajęty adres są obsługiwane identycznie przez żądanie HTTP; rozróżnia je dopiero zadanie w kolejce, więc kolejka musi działać (cron `schedule:run`). Limit: 3 maile weryfikacyjne i 3 maile resetu na godzinę na adres odbiorcy (także bez konta).
+
+## Wdrożenie: uzupełnienia po audycie zadania 003
+
+- Ustalić `BACKUP_NOTIFICATION_EMAIL` i `NOMINATIM_CONTACT_EMAIL` (adresy w domenie kontroladomu.pl). Do czasu ustawienia pierwszego raz w tygodniu wykonywać `php artisan backup:list` i sprawdzać, że istnieje kopia plików z ostatnich 7 dni.
+- Ustawić `BACKUP_ARCHIVE_PASSWORD` (min. 20 znaków) i zapisać je w menedżerze haseł poza serwerem. Bez hasła i `APP_KEY` kopii nie da się odczytać.
+- Na home.pl sprawdzić: `mysqldump`, `proc_open`, rozszerzenie zip, limity czasu i pamięci, wolne miejsce (limit kopii 3000 MB).
+- Po awarii kopii sprawdzić i wyczyścić `storage/app/backup-temp` (może zawierać niezaszyfrowany zrzut bazy).
+- Import TERYT zrobić lokalnie i przenieść tabele `teryt_*` przez phpMyAdmin, jeśli hosting nie daje SSH.
+- Cloudflare: reguła ograniczenia zapytań dla `/miejscowosci/*` oraz cache tej ścieżki.
+- Przed odpowiedzią GUS w sprawie licencji nie reklamować serwisu publicznie.
+

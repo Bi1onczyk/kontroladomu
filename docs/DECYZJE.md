@@ -134,3 +134,57 @@ Każda istotna decyzja techniczna: dlaczego tak, a nie inaczej. Najnowsze na dol
 - **Alternatywy:** ręczne pobranie plików woff2 (bez aktualizacji, bez śladu licencji); Alpine standardowy (wymaga `unsafe-eval`).
 - **Konsekwencje:** w `x-data` wolno wskazywać tylko zarejestrowane nazwy; w metodach komponentu dane z `data-*` czytamy przez `this.$root` (nie `$el`).
 - **Data:** 2026-10-29
+
+## ADR-012: Baza miejscowości TERYT (SIMC + TERC), import z plików, wyszukiwanie po kolumnie `name_search`
+- **Kontekst:** autouzupełnianie miejscowości (także wsi, z gminą i powiatem) wymaga lokalnej bazy. Źródło: rejestr TERYT GUS (pliki pełne SIMC i TERC, 101 865 miejscowości od 01.01.2026).
+  SIMC nie zawiera współrzędnych ani nazw gmin/powiatów. Licencji TERYT nie udało się potwierdzić (strony eTeryt jej nie podają). Struktura plików niezweryfikowana na prawdziwym pliku.
+- **Decyzja:** tabele `teryt_municipalities` (z denormalizowanymi nazwami powiatu i województwa) i `teryt_localities` (klucz biznesowy `simc` char(7), `slug`, `lat/lng` NULL, `is_active`).
+  Import komendą `teryt:import` z ręcznie wgranych plików (strumieniowo, porcje 1000, `upsert`), z planem awaryjnym: import lokalny + zrzut tabel przez phpMyAdmin. Wyszukiwanie przez własną kolumnę
+  `name_search` (małe litery, bez polskich znaków, bez interpunkcji), dopasowanie prefiksowe `LIKE 'q%'` po indeksie. Współrzędne uzupełniane leniwie przez `GeocodingService`. Modele w `app/Domain/Geo/Models`
+  (modele domenowe w katalogach domen; `User` zostaje w `app/Models`, ADR-010). Dane TERYT nie są commitowane i nie są udostępniane jako zbiór do czasu wyjaśnienia licencji.
+- **Alternatywy:** collation `utf8mb4_polish_ci`/`0900_ai_ci` (różne zachowanie MariaDB i MySQL, brak w SQLite testów); FULLTEXT (słabe dla prefiksów i polskiej fleksji); osobne tabele powiatów i województw (więcej złączeń bez korzyści);
+  pobieranie TERYT przez API SOAP (wymaga konta, kruche); hurtowe współrzędne z PRG/Geoportalu (licencja i format niezweryfikowane, opcja na przyszłość); geokodowanie hurtowe w Nominatim (niezgodne z polityką OSMF).
+- **Konsekwencje:** dodatkowa kolumna do utrzymania spójności z helperem `SearchText`; brak współrzędnych dla niewybieranych miejscowości; aktualizacja danych jest ręczna (kilka razy w roku). Brak nowych paczek.
+- **Data:** 2026-10-30
+
+## ADR-013: GeocodingService (Nominatim): cache skrótowy, throttle w bazie, wyłącznik awarii, bez autouzupełniania
+- **Kontekst:** polityka OSMF Nominatim (sprawdzona 30.10.2026): 1 zapytanie/s dla całej aplikacji, własny User-Agent, zalecane cache, zakaz autouzupełniania po stronie klienta na publicznym API, atrybucja ODbL. Hosting bez Redisa.
+- **Decyzja:** interfejs `GeocodingProvider` + `NominatimProvider` + `GeocodingService`. Autouzupełnianie wyłącznie z lokalnego TERYT. Cache w `geocode_cache`: skrót SHA-256 znormalizowanego adresu + współrzędne, bez tekstu adresu i bez `display_name` (RODO, minimalizacja);
+  TTL 180 dni dla trafień, 7 dni dla „nie znaleziono”, błędy sieci nie są cache’owane. Limit 1/s przez `Cache::lock` (driver `database`, tabela `cache_locks`) i zapis czasu ostatniego zapytania. Wyłącznik `geocoding:down` (5 min po awarii, 30 min po 429/403).
+  Serwis nie rzuca wyjątków do UI; wywołujący używa środka miejscowości i kolejki `GeocodeProperty`. W zapytaniu tylko adres (ulica, numer, kod, miejscowość, kraj). Bazowy URL i kontakt w `.env`.
+- **Alternatywy:** geokodery zewnętrzne (płatne lub dodatkowa zależność); własny Nominatim (koszt serwera); cache pełnego adresu (utrata minimalizacji danych); throttle plikowy `flock` (gorzej przenośny niż lock w bazie);
+  Google Geocoding (płatne, ograniczenia cache w licencji).
+- **Konsekwencje:** przy dużym ruchu publiczny Nominatim przestanie wystarczać (ADR-002); interfejs pozwala podmienić dostawcę. Odbiorca danych (OSMF) trafia do rejestru RODO i polityki prywatności. Brak nowych paczek (klient HTTP Laravela).
+- **Data:** 2026-10-30
+
+## ADR-014: Paczka spatie/laravel-backup ^10.3 i zasady kopii
+- **Kontekst:** CLAUDE.md §3, §5.6: baza codziennie, pliki co tydzień, retencja 14 dni, kopia poza serwerem. Packagist (30.10.2026): `spatie/laravel-backup` 10.3.3 z 14.09.2026, licencja MIT, `php ^8.3`, `illuminate/* ^12.40|^13.0`, `ext-zip`.
+  Wydania 10.0.0–10.1.1 wymagały PHP ^8.4 (README to powtarza), od 10.2.0 znów ^8.3. Zależności: `spatie/db-dumper ^4.0`, `spatie/laravel-signal-aware-command ^2.1`, `spatie/temporary-directory ^2.3` (Spatie, licencje do potwierdzenia przez `composer show` po instalacji).
+- **Decyzja:** `composer require spatie/laravel-backup:^10.3`. Archiwa szyfrowane AES-256 (`BACKUP_ARCHIVE_PASSWORD`), `.env` w kopii plików (utrata `APP_KEY` = utrata 2FA, ADR-005). Dysk `backups` lokalny poza `public/`; kopia poza serwerem jako dodatkowy dysk w `BACKUP_DISKS`
+  po decyzji właściciela (SFTP: `league/flysystem-sftp-v3`, S3-zgodny: `league/flysystem-aws-s3-v3`; każdy wymaga osobnego wpisu przed instalacją). Harmonogram (UTC): baza 02:00, pliki niedziela 02:30, clean 02:50, monitor 04:00. Retencja `keep_all_backups_for_days=14`.
+  Alert mailowy przy błędzie lub braku świeżej kopii.
+- **Alternatywy:** `spatie/laravel-backup` ^9.4 (też działa na PHP 8.3, starsza); własna komenda `mysqldump` (brak retencji, powiadomień, szyfrowania); wyłącznie kopie panelu home.pl (poza kontrolą aplikacji, nieznana retencja);
+  `ifsnop/mysqldump-php` jako plan B, gdy na hostingu brak `mysqldump`/`proc_open` (niepotwierdzone, osobny ADR przy użyciu).
+- **Konsekwencje:** wymaga `mysqldump`, `proc_open` i `ext-zip` na hostingu (do weryfikacji przed wdrożeniem); długi `backup:run` w `schedule:run` w nocy zajmuje ten proces crona; hasło archiwum trzeba trzymać poza serwerem.
+- **Data:** 2026-10-30
+
+## ADR-015: Tabela `settings` z osobną kolumną na sekrety
+- **Kontekst:** CLAUDE.md wymaga ustawień SMTP edytowanych przez admina w tabeli `settings` z szyfrowaniem (`encrypted` cast). Tabela nie istniała (stan po zadaniu 002).
+- **Decyzja:** `settings(group, key UNIQUE, value, secret_value, updated_by)`; `secret_value` z castem `encrypted`; dostęp tylko przez `SettingsRepository` z cache całej tabeli, unieważnianym przy zapisie. Sekrety nie trafiają do dziennika aktywności.
+  W zadaniu 003 używana tylko do dat stanu importu TERYT; ładowanie SMTP do `config('mail')` w ServiceProviderze to osobne zadanie (panel admina).
+- **Alternatywy:** jedna kolumna `value` + flaga `is_encrypted` (cast Eloquenta nie działa warunkowo, trzeba ręcznie `Crypt`); paczka `spatie/laravel-settings` (dodatkowa zależność, nadmiarowa).
+- **Konsekwencje:** zmiana `APP_KEY` unieważnia odczyt sekretów; kopia `.env` poza serwerem jest obowiązkowa.
+- **Data:** 2026-10-30
+
+## ADR-016: Decyzje właściciela z 30.10.2026 do zadania 003 i odstępstwa implementacji od projektu architekta
+- **Kontekst:** po projekcie architekta (ADR-012…015) właściciel rozstrzygnął pytania otwarte, a implementacja na prawdziwych plikach GUS ujawniła kilka szczegółów.
+- **Decyzja (właściciel):** (a) adresy e-mail alarmów o kopiach (`BACKUP_NOTIFICATION_EMAIL`) i kontaktu dla Nominatim (`NOMINATIM_CONTACT_EMAIL`) są jeszcze nieznane: dwie osobne zmienne, domyślnie puste.
+  Pusty `BACKUP_NOTIFICATION_EMAIL` = kopie działają, alarmy mailowe wyłączone. Pusty `NOMINATIM_CONTACT_EMAIL` = serwis nie wysyła zapytań do publicznego Nominatim (cache działa; własny serwer Nominatim pod innym hostem nie wymaga kontaktu).
+  `ProductionConfigGuard` NIE wymaga tych adresów (aplikacja startuje), ale wymaga `BACKUP_ARCHIVE_PASSWORD` (min. 20 znaków), bo kopia plików zawiera `.env`. (b) Kopia poza serwerem: na razie ręczne pobieranie; bez paczek SFTP/S3.
+  (c) Licencja TERYT: właściciel wysyła zapytanie do GUS (`docs/GUS_ZAPYTANIE_LICENCJA.md`); do odpowiedzi dane oznaczone źródłem „GUS, rejestr TERYT” (ustawienie `teryt.source`). (d) Pozostałe pytania: domyślne odpowiedzi architekta.
+- **Odstępstwa implementacji:** (1) importer czyta tylko CSV (UTF-8 z BOM, średnik, CRLF; sprawdzone na prawdziwych plikach z 30.10.2026), nie XML; wiersze dzieli po średniku zamiast `fgetcsv`, bo w danych są niezamknięte cudzysłowy (`Mazewo Dworskie"B"`).
+  (2) Dodatkowa kolumna `teryt_municipalities.county_name_search` (zapytanie „dabrowka poznanski”). (3) Gmina w SIMC odwołuje się do wiersza TERC o kodzie WOJ+POW+GMI+RODZ, w tym RODZ 4 i 5 (miasto/obszar wiejski w gminie miejsko-wiejskiej), więc importujemy wszystkie wiersze gmin (3964).
+  (4) Trasa autouzupełniania działa bez sesji i ciasteczek (`withoutMiddleware`), bo odpowiedź ma `Cache-Control: public`. (5) Daty w `upsert` jako tekst, nie obiekty Carbon (obiekty powodowały rosnące zużycie pamięci przy imporcie). (6) Zmienna alarmów kopii nazywa się `BACKUP_NOTIFICATION_EMAIL` (nie `BACKUP_NOTIFY_EMAIL`).
+- **Alternatywy:** wymaganie adresów w strażniku produkcyjnym (aplikacja nie wystartowałaby przed ich ustaleniem); wspólna zmienna dla obu adresów (różne role, mogą być różne skrzynki).
+- **Konsekwencje:** do czasu podania adresów nowe adresy nieruchomości nie są geokodowane (UX: ręczna pinezka lub środek miejscowości), a awarii kopii nikt nie zgłasza mailem (sprawdzanie ręczne: `php artisan backup:list`). Paczek nowych: tylko `spatie/laravel-backup` 10.3.3 (zależności MIT: `spatie/db-dumper` 4.1.1, `spatie/laravel-signal-aware-command` 2.1.2, `spatie/temporary-directory` 2.4.0).
+- **Data:** 2026-10-30

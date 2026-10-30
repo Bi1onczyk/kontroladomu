@@ -239,6 +239,7 @@ it('R5: strażnik wymaga APP_URL z https i hostem oraz niepustych TRUSTED_PROXIE
         'app.debug' => false, 'app.url' => 'https://kontroladomu.pl', 'security.trusted_proxies' => '173.245.48.0/20',
         'services.turnstile.enabled' => true, 'services.turnstile.site_key' => '0x4AAAA', 'services.turnstile.secret' => '0x4BBBB',
         'queue.default' => 'database', 'mail.default' => 'smtp', 'session.secure' => true, 'auth.check_pwned' => true,
+        'backup.backup.password' => 'haslo-archiwum-testowe-20+',
     ]);
     expect((new ProductionConfigGuard)->violations())->toBe([]);
 

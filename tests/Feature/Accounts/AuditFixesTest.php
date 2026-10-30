@@ -50,6 +50,7 @@ function validProductionConfig(): void
         'mail.default' => 'smtp',
         'session.secure' => true,
         'auth.check_pwned' => true,
+        'backup.backup.password' => 'haslo-archiwum-testowe-20+',
     ]);
 }
 
@@ -290,7 +291,16 @@ it('S5: strażnik zgłasza każdą niebezpieczną wartość konfiguracji', funct
     'mailer array' => [['mail.default' => 'array'], 'MAIL_MAILER'],
     'ciasteczko bez Secure' => [['session.secure' => null], 'SESSION_SECURE_COOKIE'],
     'HIBP wyłączone' => [['auth.check_pwned' => false], 'AUTH_CHECK_PWNED'],
+    'brak hasła archiwum kopii' => [['backup.backup.password' => null], 'BACKUP_ARCHIVE_PASSWORD'],
+    'za krótkie hasło archiwum kopii' => [['backup.backup.password' => 'krotkie'], 'BACKUP_ARCHIVE_PASSWORD'],
 ]);
+
+it('S5: brak adresów e-mail dla alarmów kopii i kontaktu Nominatim NIE blokuje startu (decyzja właściciela 30.10.2026)', function () {
+    validProductionConfig();
+    config(['geocoding.contact' => null, 'backup.notifications.mail.to' => null]);
+
+    expect((new ProductionConfigGuard)->violations())->toBe([]);
+});
 
 it('S5: aplikacja na produkcji nie startuje z konfiguracją deweloperską', function (array $override) {
     validProductionConfig();
