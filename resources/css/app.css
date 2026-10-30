@@ -1,0 +1,101 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source "../**/*.blade.php";
+@source "../**/*.js";
+
+/*
+| Czcionka Source Sans 3 hostowana lokalnie (pakiet @fontsource-variable, licencja OFL).
+| Tylko podzbiory "latin" i "latin-ext" (polskie znaki są w latin-ext). Bez Google Fonts (RODO, CSP).
+*/
+@font-face {
+    font-family: 'Source Sans 3 Variable';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 200 900;
+    src: url('../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-ext-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Source Sans 3 Variable';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 200 900;
+    src: url('../../node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2') format('woff2-variations');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@theme {
+    --color-brand-700: #1F5F3F;
+    --color-brand-600: #2E7D4F;
+    --color-brand-100: #E6F2EA;
+    --color-ink-900: #1D2521;
+    --color-ink-600: #55605A;
+    --color-line: #D8DED9;
+    --color-paper: #FFFFFF;
+    --color-paper-2: #F6F8F6;
+    --color-warn: #B7791F;
+    --color-danger: #B42318;
+    --color-ok: #2E7D4F;
+    /* Jasne tła ramek ostrzeżeń i błędów (tekst w nich zawsze ink-900, kontrast > 12:1). */
+    --color-warn-100: #FBF3E1;
+    --color-danger-100: #FCECE9;
+    --font-sans: 'Source Sans 3 Variable', ui-sans-serif, system-ui, 'Segoe UI', Arial, sans-serif;
+    --font-mono: ui-monospace, 'Cascadia Mono', 'Consolas', 'Liberation Mono', monospace;
+}
+
+@layer base {
+    body {
+        color: var(--color-ink-900);
+        font-family: var(--font-sans);
+        font-size: 1.0625rem; /* 17 px */
+        line-height: 1.5;
+    }
+
+    /* Elementy ukryte do czasu uruchomienia Alpine (bez migotania). */
+    [x-cloak] {
+        display: none !important;
+    }
+
+    /* Fokus zawsze widoczny: obrys 3 px, odstęp 2 px (UX §2). */
+    :focus-visible {
+        outline: 3px solid var(--color-brand-600);
+        outline-offset: 2px;
+    }
+
+    /* Tekst linków w treści: podkreślenie, nie tylko kolor. */
+    .prose-link {
+        color: var(--color-brand-700);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+
+    .prose-link:hover {
+        color: var(--color-brand-600);
+    }
+
+    /* Nagłówki fokusowane programowo nie potrzebują obrysu myszy, ale zachowują go dla klawiatury. */
+    [tabindex='-1']:focus:not(:focus-visible) {
+        outline: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+@media print {
+    /* Wydruk kodów awaryjnych: tylko treść główna, bez menu i stopki. */
+    .no-print {
+        display: none !important;
+    }
+}
