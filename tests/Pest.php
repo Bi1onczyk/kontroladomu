@@ -1,6 +1,10 @@
 <?php
 
 use App\Domain\Geo\Actions\ImportTerytData;
+use App\Domain\Geo\Models\TerytLocality;
+use App\Domain\Specialists\Enums\LocationStatus;
+use App\Domain\Specialists\Models\SpecialistProfile;
+use App\Domain\Specialists\Models\SpecialistService;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -105,4 +109,37 @@ function importTerytFixture(): void
         base_path('tests/Fixtures/teryt/TERC.csv'),
         base_path('tests/Fixtures/teryt/SIMC.csv'),
     );
+}
+
+/**
+ * Fachowiec z potwierdzonym 2FA i pustym profilem (profil tworzony fabryką, nie przez panel).
+ *
+ * @param  array<string, mixed>  $profileAttributes  Nadpisania pól profilu.
+ */
+function specialistProfile(array $profileAttributes = []): SpecialistProfile
+{
+    $user = User::factory()->specialist()->withTwoFactor()->create();
+
+    return SpecialistProfile::factory()->for($user)->create($profileAttributes);
+}
+
+/**
+ * Profil z trzema wymaganymi krokami (nazwa, telefon, miejscowość ze współrzędnymi, jedna usługa) - gotowy do publikacji.
+ *
+ * @param  array<string, mixed>  $profileAttributes
+ */
+function completeSpecialistProfile(array $profileAttributes = []): SpecialistProfile
+{
+    $profile = specialistProfile($profileAttributes);
+    $profile->forceFill(['phone' => '+48600123456'])->save();
+    $locality = TerytLocality::factory()->withCoordinates()->create();
+    $profile->forceFill([
+        'locality_simc' => $locality->simc,
+        'start_lat' => $locality->lat,
+        'start_lng' => $locality->lng,
+        'location_status' => LocationStatus::Resolved,
+    ])->save();
+    SpecialistService::factory()->create(['specialist_profile_id' => $profile->id]);
+
+    return $profile->refresh();
 }

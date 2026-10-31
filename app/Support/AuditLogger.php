@@ -19,6 +19,12 @@ class AuditLogger
     /** Nazwa dziennika dla działań administratorów (retencja 12 miesięcy). */
     public const LOG_ADMIN = 'security_admin';
 
+    /** Nazwa dziennika dla zmian profilu fachowca i jego zaświadczeń (bez numerów i telefonu; retencja 90 dni). */
+    public const LOG_SPECIALIST = 'specialist';
+
+    /** Nazwa dziennika dla automatycznego usuwania danych po upływie okresu przechowywania (retencja 90 dni). */
+    public const LOG_RETENTION = 'retention';
+
     /**
      * Zapisuje wpis w dzienniku.
      *

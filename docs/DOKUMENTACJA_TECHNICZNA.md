@@ -192,6 +192,92 @@ erDiagram
     }
 ```
 
+Planowany model profilu fachowca (zadanie 004, jeszcze niezaimplementowany, bez zdjęcia/logo; szczegóły w `docs/zadania/004-profil-fachowca.md`).
+Rodzaje przeglądów i typy nieruchomości to klucze tekstowe z Enumów (`InspectionType`, `PropertyType`), nie klucze obce (ADR-017):
+
+```mermaid
+erDiagram
+    users ||--o| specialist_profiles : "właściciel konta"
+    teryt_localities ||--o{ specialist_profiles : "punkt startowy (simc)"
+    specialist_profiles ||--o{ specialist_services : "rodzaj x typ + cena"
+    specialist_profiles ||--o{ specialist_slug_redirects : "stare adresy"
+    specialist_profiles ||--o{ specialist_certificates : "zaświadczenia"
+    specialist_profiles {
+        bigint id PK
+        bigint user_id FK "UK, cascade"
+        string slug UK "3-60, a-z0-9 i myślnik"
+        timestamp slug_changed_at
+        string display_name
+        string account_type "sole_proprietor / company"
+        text description "tekst, bez HTML"
+        string phone "prywatny"
+        boolean phone_is_public "zgoda, domyślnie false"
+        timestamp phone_public_consent_at "dowód zgody"
+        char locality_simc FK "restrict, null do wyboru"
+        smallint service_radius_km
+        int travel_rate_per_km_grosze
+        smallint travel_free_km
+        decimal start_lat "10,7 null"
+        decimal start_lng "10,7 null"
+        string start_precision
+        string start_source
+        string location_status "pending / resolved / failed"
+        timestamp location_resolved_at
+        string verification_status "pending / verified / rejected / revoked"
+        timestamp verified_at
+        boolean is_published
+        timestamp first_published_at
+    }
+    specialist_services {
+        bigint id PK
+        bigint specialist_profile_id FK "cascade"
+        string inspection_type "Enum InspectionType"
+        string property_type "Enum PropertyType"
+        int price_grosze "null = wycena indywidualna"
+    }
+    specialist_slug_redirects {
+        bigint id PK
+        bigint specialist_profile_id FK "cascade"
+        string old_slug UK
+    }
+    specialist_certificates {
+        bigint id PK
+        char ulid UK "klucz w URL"
+        bigint specialist_profile_id FK "cascade"
+        string type "Enum CertificateType"
+        string title
+        string number
+        string issuer
+        date valid_until "null = bezterminowo"
+        string file_path "dysk local, losowa nazwa"
+        string file_original_name
+        string file_mime
+        int file_size
+        char file_sha256
+    }
+    archived_certificates {
+        bigint id PK
+        char ulid UK
+        bigint former_user_id "bez FK"
+        string holder_label "nazwa publiczna z chwili usunięcia"
+        string type
+        string title
+        string number
+        string issuer
+        date valid_until
+        string verification_status_at_archive
+        timestamp verified_at
+        string file_path "katalog archiwum, dysk local"
+        string file_mime
+        int file_size
+        char file_sha256
+        timestamp archived_at
+        date delete_after "archived_at + 12 mies., INDEX"
+    }
+```
+
+Archiwum skanów (`archived_certificates`, ADR-021) powstaje przy usunięciu konta fachowca (Action `PurgeSpecialistData`), nie ma kluczy obcych do `users` ani `specialist_profiles`, jest dostępne tylko dla administratora, a komenda `certificates:purge-archive` usuwa wpisy po `delete_after` (12 miesięcy; okres w `config/specialists.php`, podstawa prawna do weryfikacji przez prawnika).
+
 ## 5. Kluczowe procesy
 
 Procesy logowania, weryfikacji fachowca, rezerwacji, przypomnień i protokołów pozostają
@@ -275,4 +361,12 @@ i potwierdzeniu ograniczeń hostingu.
 - Import TERYT zrobić lokalnie i przenieść tabele `teryt_*` przez phpMyAdmin, jeśli hosting nie daje SSH.
 - Cloudflare: reguła ograniczenia zapytań dla `/miejscowosci/*` oraz cache tej ścieżki.
 - Przed odpowiedzią GUS w sprawie licencji nie reklamować serwisu publicznie.
+
+## Wdrożenie: uzupełnienia po audycie zadania 004
+
+- Rozszerzenia PHP: `gd`, `fileinfo`, najlepiej też `exif` (obrót zdjęć z telefonu). Sprawdzić `memory_limit` (zdjęcia powyżej ok. 12 MP mogą być odrzucone przy 128 MB), `upload_max_filesize` i `post_max_size` (min. 6 MB).
+- Cron co minutę musi działać: geokodowanie miejscowości (`GeocodeLocalityJob`), komendy `specialists:retry-geocoding` (co godzinę), `certificates:purge-archive` (03:30) i `certificates:prune-orphans` (niedziela).
+- Dopóki `NOMINATIM_CONTACT_EMAIL` jest pusty, miejscowości bez współrzędnych zostają ze statusem `pending` i fachowcy nie będą znajdowani po odległości.
+- Przed uruchomieniem publicznym: mechanizm zgłaszania treści (DSA art. 16), decyzja prawnika o archiwum skanów, test w prawdziwej przeglądarce (CSP, telefon).
+- Po wdrożeniu nowych migracji: `php artisan backup:run --only-db`, potem `php artisan migrate`.
 

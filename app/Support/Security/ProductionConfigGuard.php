@@ -74,6 +74,12 @@ class ProductionConfigGuard
             $violations[] = 'BACKUP_ARCHIVE_PASSWORD musi mieć co najmniej '.self::MIN_BACKUP_PASSWORD_LENGTH.' znaków (archiwa kopii są szyfrowane).';
         }
 
+        // Zapytania do Nominatim niosą nazwy miejscowości i adresy: tylko szyfrowanym połączeniem (audyt 003 #2).
+        $nominatimUrl = (string) config('geocoding.base_url');
+        if ($nominatimUrl !== '' && ! str_starts_with(strtolower($nominatimUrl), 'https://')) {
+            $violations[] = 'NOMINATIM_URL musi zaczynać się od https://.';
+        }
+
         return $violations;
     }
 

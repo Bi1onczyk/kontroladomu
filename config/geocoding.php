@@ -23,7 +23,9 @@ return [
     'connect_timeout' => 3,
 
     // Ile dni pamiętamy wynik: trafienie / "nie znaleziono". Błędy sieci nie są zapisywane.
+    // Trafienie dla zapytania Z ULICĄ żyje krócej (pseudonimizowany, ale potencjalnie domowy adres; audyt 003 #4).
     'ttl_found_days' => 180,
+    'ttl_found_days_street' => 30,
     'ttl_not_found_days' => 7,
 
     // Odstęp między zapytaniami (limit 1/s + zapas) i blokada współdzielona przez procesy PHP.

@@ -7,10 +7,12 @@ use App\Domain\Accounts\Notifications\ResetPasswordNotification;
 use App\Domain\Accounts\Notifications\VerifyEmailNotification;
 use App\Domain\Accounts\Policies\UserPolicy;
 use App\Domain\Accounts\Support\RecipientMailLimiter;
+use App\Domain\Specialists\Models\SpecialistProfile;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\Events\RecoveryCodeReplaced;
@@ -78,6 +80,16 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_reminder_until' => 'datetime',
         ];
+    }
+
+    /**
+     * Profil fachowca (istnieje tylko dla kont z rolą `specialist`, po pierwszym wejściu do panelu profilu).
+     *
+     * @return HasOne<SpecialistProfile, $this>
+     */
+    public function specialistProfile(): HasOne
+    {
+        return $this->hasOne(SpecialistProfile::class);
     }
 
     /**
