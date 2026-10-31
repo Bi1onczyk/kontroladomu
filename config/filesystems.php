@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        // Kopie zapasowe (spatie/laravel-backup): poza public/, nigdy nie wydawane przez serwer WWW.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

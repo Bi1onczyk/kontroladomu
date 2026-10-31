@@ -23,3 +23,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Pliki wejściowe TERYT (GUS) i kopie zapasowe: nigdy do repozytorium.
+/storage/app/private/teryt-import/
+/storage/app/backups/

@@ -31,6 +31,12 @@
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="TURNSTILE_ENABLED" value="false"/>
+        <env name="NOMINATIM_CONTACT_EMAIL" value=""/>
+        <env name="NOMINATIM_URL" value="https://nominatim.openstreetmap.org"/>
+        <env name="BACKUP_NOTIFICATION_EMAIL" value=""/>
+        <env name="BACKUP_ARCHIVE_PASSWORD" value=""/>
+        <env name="BACKUP_DISKS" value="backups"/>
+        <env name="BACKUP_MAX_STORAGE_MB" value="3000"/>
         <env name="AUTH_CHECK_PWNED" value="false"/>
     </php>
 </phpunit>

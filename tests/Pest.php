@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Geo\Actions\ImportTerytData;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -93,4 +94,15 @@ function countQueries(callable $action): int
     $action();
 
     return $count;
+}
+
+/**
+ * Importuje SYNTETYCZNE pliki TERC/SIMC z tests/Fixtures/teryt (24 miejscowości, 7 gmin) do bazy testowej.
+ */
+function importTerytFixture(): void
+{
+    app(ImportTerytData::class)->handle(
+        base_path('tests/Fixtures/teryt/TERC.csv'),
+        base_path('tests/Fixtures/teryt/SIMC.csv'),
+    );
 }
