@@ -79,11 +79,15 @@ final readonly class AddressQuery
     }
 
     /**
-     * Skrót SHA-256 znormalizowanego adresu: klucz cache. Tekst adresu nie jest nigdzie zapisywany.
+     * Skrót HMAC-SHA256 znormalizowanego adresu: klucz cache. Tekst adresu nie jest nigdzie zapisywany.
+     *
+     * Klucz HMAC to `APP_KEY`: bez niego nie da się sprawdzić słownikowo, czy w cache jest dany adres
+     * (zwykły skrót SHA-256 pozwalałby przetestować listę znanych adresów). To pseudonimizacja, nie anonimizacja:
+     * kto zna `APP_KEY`, może skrót odtworzyć. Zmiana `APP_KEY` unieważnia cache (wpisy wygasną same, ADR-020).
      */
     public function hash(): string
     {
-        return hash('sha256', implode('|', [
+        return hash_hmac('sha256', implode('|', [
             SearchText::normalize((string) $this->street),
             SearchText::normalize((string) $this->houseNumber),
             preg_replace('/\D+/', '', (string) $this->postalCode),
@@ -91,6 +95,6 @@ final readonly class AddressQuery
             SearchText::normalize((string) $this->simc),
             SearchText::normalize((string) $this->county),
             SearchText::normalize((string) $this->state),
-        ]));
+        ]), (string) config('app.key'));
     }
 }

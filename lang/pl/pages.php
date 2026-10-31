@@ -72,4 +72,40 @@ return [
         'form_note' => 'Formularz kontaktowy jest w przygotowaniu. Na razie prosimy o wiadomość na adres e-mail.',
         'report_note' => 'Zgłoszenia nielegalnych treści: mechanizm w przygotowaniu. Do tego czasu prosimy o wiadomość na ten sam adres.',
     ],
+
+    // Strona "Jak weryfikujemy fachowców" (szkic). Miejsca [do uzupełnienia] wymagają decyzji właściciela lub prawnika.
+    'verification' => [
+        'title' => 'Jak weryfikujemy fachowców',
+        'description' => 'Co oznaczają statusy „Zweryfikowany” i „Oczekuje na weryfikację” przy profilach fachowców w serwisie kontroladomu.pl (szkic).',
+        'intro' => 'Fachowiec może opublikować profil od razu, a jego uprawnienia sprawdzamy w kolejnym kroku. Dlatego przy każdym profilu widać, na jakim etapie jest weryfikacja.',
+        'sections' => [
+            [
+                'title' => 'Dwa statusy przy profilu',
+                'items' => [
+                    'Oczekuje na weryfikację: serwis nie sprawdził jeszcze uprawnień tego fachowca. Przed umówieniem przeglądu warto zapytać o uprawnienia.',
+                    'Zweryfikowany: administrator serwisu sprawdził zaświadczenia fachowca. Na profilu jest podana data sprawdzenia.',
+                ],
+            ],
+            [
+                'title' => 'Co sprawdza administrator',
+                'text' => 'Fachowiec dodaje w panelu skan lub zdjęcie zaświadczenia o uprawnieniach i wpisuje jego numer, zakres oraz datę ważności. Administrator porównuje te dane z dokumentem. [do uzupełnienia: czy numer jest dodatkowo sprawdzany w rejestrze wydawcy uprawnień]',
+            ],
+            [
+                'title' => 'Co widać na profilu',
+                'text' => 'Po weryfikacji na profilu są widoczne: rodzaj uprawnienia, jego zakres i data ważności. Numeru dokumentu ani skanu nie pokazujemy nikomu poza fachowcem i administratorem. Zaświadczenie dodane już po weryfikacji nie jest pokazywane na profilu, dopóki administrator go nie sprawdzi.',
+            ],
+            [
+                'title' => 'Czego znaczek nie oznacza',
+                'text' => 'Status dotyczy wyłącznie sprawdzonych dokumentów. Nie jest oceną jakości pracy fachowca ani gwarancją wykonania przeglądu. Serwis nie pośredniczy w płatnościach: rozliczenie następuje bezpośrednio między klientem a fachowcem. Zasady weryfikowania opinii klientów opiszemy osobno, gdy opinie zostaną uruchomione.',
+            ],
+            [
+                'title' => 'Wygaśnięcie i cofnięcie weryfikacji',
+                'text' => '[do uzupełnienia: co dzieje się z profilem, gdy uprawnienia wygasną lub okażą się nieprawdziwe, oraz jak fachowiec może odwołać się od decyzji]',
+            ],
+            [
+                'title' => 'Masz uwagi do profilu?',
+                'text' => 'Jeśli podejrzewasz, że profil zawiera nieprawdziwe informacje, napisz na adres :email.',
+            ],
+        ],
+    ],
 ];

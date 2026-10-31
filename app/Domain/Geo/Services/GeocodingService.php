@@ -83,7 +83,7 @@ class GeocodingService
             }
         }
 
-        return $this->finish($result, $hash);
+        return $this->finish($result, $hash, $query->hasStreet());
     }
 
     /**
@@ -150,8 +150,10 @@ class GeocodingService
 
     /**
      * Zapisuje wynik w cache (poza niedostępnością) i zamienia go na wynik dla aplikacji.
+     *
+     * @param  bool  $hadStreet  Czy pierwotne zapytanie miało ulicę (wtedy krótszy czas życia trafienia).
      */
-    private function finish(ProviderResult $result, string $hash): GeocodeResult
+    private function finish(ProviderResult $result, string $hash, bool $hadStreet): GeocodeResult
     {
         if ($result->status === GeocodeStatus::Unavailable) {
             $reason = $result->reason ?? 'unknown';
@@ -166,7 +168,9 @@ class GeocodingService
 
         if ($result->status === GeocodeStatus::Found && $result->coordinates !== null) {
             $precision = $result->precision ?? GeocodePrecision::Locality;
-            $this->store($hash, GeocodeStatus::Found, $result->coordinates, $precision, (int) config('geocoding.ttl_found_days'));
+            // Adres z ulicą może wskazywać dom osoby, więc pamiętamy go krócej niż samą miejscowość (audyt 003).
+            $ttlDays = $hadStreet ? (int) config('geocoding.ttl_found_days_street') : (int) config('geocoding.ttl_found_days');
+            $this->store($hash, GeocodeStatus::Found, $result->coordinates, $precision, $ttlDays);
 
             return GeocodeResult::found($result->coordinates->lat, $result->coordinates->lng, $precision, false);
         }

@@ -17,7 +17,7 @@
             ['label' => __('dashboard.nav.calendar'), 'icon' => 'calendar'],
             ['label' => __('dashboard.nav.requests'), 'icon' => 'inbox'],
             ['label' => __('dashboard.nav.history'), 'icon' => 'chart'],
-            ['label' => __('dashboard.nav.profile'), 'icon' => 'user'],
+            ['label' => __('dashboard.nav.profile'), 'icon' => 'user', 'href' => route('specialist.profile.edit'), 'active' => request()->routeIs('specialist.profile.*', 'specialist.certificates.*')],
         ],
         'admin' => [
             ['label' => __('dashboard.nav.dashboard'), 'icon' => 'home', 'href' => route('dashboard'), 'active' => request()->routeIs('dashboard')],
@@ -95,7 +95,8 @@
             </header>
 
             <main id="main" tabindex="-1" class="mx-auto w-full max-w-4xl flex-1 px-4 py-6 md:px-8 md:py-10">
-                <x-flash class="mb-6" />
+                {{-- Strony z długimi sekcjami (np. Profil) ustawiają sekcję flash_sticky: komunikat zostaje widoczny po przeskoku do kotwicy. --}}
+                <x-flash :class="'mb-6 '.(View::hasSection('flash_sticky') ? 'sticky top-16 z-10 md:top-2' : '')" />
                 @yield('content')
             </main>
 

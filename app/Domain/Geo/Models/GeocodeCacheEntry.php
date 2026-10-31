@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Zapamiętany wynik geokodowania (ADR-013). Klucz to skrót SHA-256 znormalizowanego adresu;
+ * Zapamiętany wynik geokodowania (ADR-013). Klucz to skrót HMAC-SHA256 (klucz APP_KEY) znormalizowanego adresu;
  * tekst adresu nie jest przechowywany (RODO, minimalizacja danych).
  *
  * @property int $id

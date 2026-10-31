@@ -40,3 +40,11 @@ Schedule::command('backup:monitor')->dailyAt('04:00');
 
 // Cache geokodowania: usuwanie wygasłych wpisów.
 Schedule::command('geocode:prune')->dailyAt('03:40');
+
+// Profile fachowców (zadanie 004).
+// Ponowienie ustalania położenia miejscowości dla profili bez współrzędnych (bez skonfigurowanego dostawcy komenda nic nie robi).
+Schedule::command('specialists:retry-geocoding')->hourly()->withoutOverlapping(30);
+// Archiwum skanów zaświadczeń po usunięciu konta (ADR-021): usuwanie po upływie okresu przechowywania.
+Schedule::command('certificates:purge-archive')->dailyAt('03:30')->withoutOverlapping(60);
+// Pliki zaświadczeń bez wiersza w bazie (oba katalogi), co tydzień w niedzielę.
+Schedule::command('certificates:prune-orphans')->weeklyOn(0, '03:50');

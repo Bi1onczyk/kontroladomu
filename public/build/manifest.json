@@ -8,12 +8,12 @@
     "src": "node_modules/@fontsource-variable/source-sans-3/files/source-sans-3-latin-wght-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-CPGuKYu3.css",
+    "file": "assets/app-BdU_FWUH.css",
     "src": "resources/css/app.css",
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-LZE5DcWU.js",
+    "file": "assets/app-Dwu-eL3B.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true

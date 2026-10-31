@@ -177,12 +177,12 @@ it('zapamiętuje "nie znaleziono" na 7 dni i nie pyta ponownie', function () {
         ->and((int) round(now()->diffInDays($entry->expires_at)))->toBe(7);
 });
 
-it('trafienie jest ważne w cache 180 dni', function () {
+it('trafienie dla adresu z ulicą jest ważne w cache 30 dni (audyt 003; dla samej miejscowości 180 dni: GeocodingAuditFixesTest)', function () {
     Http::fake(['*' => Http::response(nominatimHit(), 200)]);
 
     app(GeocodingService::class)->geocodeAddress(address());
 
-    expect((int) round(now()->diffInDays(GeocodeCacheEntry::query()->firstOrFail()->expires_at)))->toBe(180);
+    expect((int) round(now()->diffInDays(GeocodeCacheEntry::query()->firstOrFail()->expires_at)))->toBe(30);
 });
 
 it('ignoruje wygasły wpis i nadpisuje go jednym wierszem', function () {

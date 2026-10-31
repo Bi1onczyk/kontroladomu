@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Cache wyników geokodowania adresów (ADR-013).
  *
- * RODO / minimalizacja: NIE zapisujemy tekstu adresu ani nazwy z Nominatim, tylko skrót SHA-256
- * znormalizowanego zapytania i wynik liczbowy. Z samego skrótu i współrzędnych nie da się odtworzyć adresu.
+ * RODO / minimalizacja: NIE zapisujemy tekstu adresu ani nazwy z Nominatim, tylko skrót HMAC-SHA256
+ * (klucz: APP_KEY) znormalizowanego zapytania i wynik liczbowy. To pseudonimizacja, nie anonimizacja: bez APP_KEY nie da się
+ * sprawdzić, czy w cache jest dany adres, ale kto zna APP_KEY, może skrót odtworzyć dla znanego adresu.
  * Błędy sieci nie są zapisywane.
  */
 return new class extends Migration

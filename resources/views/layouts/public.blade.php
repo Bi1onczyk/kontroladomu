@@ -4,6 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="@yield('meta_description', __('app.home.description'))">
+    @hasSection('robots')
+        <meta name="robots" content="@yield('robots')">
+    @endif
+    @hasSection('canonical')
+        <link rel="canonical" href="@yield('canonical')">
+    @endif
     <title>@hasSection('title')@yield('title') | {{ __('app.brand') }}@else{{ __('app.brand') }}@endif</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

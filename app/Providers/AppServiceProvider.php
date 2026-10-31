@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Accounts\Enums\UserRole;
 use App\Domain\Accounts\Listeners\ClearLoginFailures;
 use App\Domain\Accounts\Listeners\CountLoginFailure;
 use App\Domain\Accounts\Listeners\MarkPasswordConfirmedOnLogin;
@@ -10,13 +11,16 @@ use App\Domain\Accounts\Listeners\RecordTwoFactorActivity;
 use App\Domain\Accounts\Listeners\TwoFactorChallengeListeners;
 use App\Domain\Geo\Contracts\GeocodingProvider;
 use App\Domain\Geo\Services\NominatimProvider;
+use App\Models\User;
 use App\Support\Security\ProductionConfigGuard;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -47,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
         $this->registerPasswordRules();
         $this->registerEventListeners();
         $this->registerRateLimiters();
+        $this->registerGates();
     }
 
     /**
@@ -123,5 +128,22 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perSecond(8)->by($request->ip())->response($tooMany),
             ];
         });
+
+        // Zadanie 004. Zapisy profilu: 30/min na użytkownika. Wysyłanie zaświadczeń: 10/godz. na użytkownika.
+        // Ponowienie geokodowania: 3/godz. na użytkownika. Strona publiczna profilu: 120/min na adres IP.
+        RateLimiter::for('profile-update', fn (Request $request): Limit => Limit::perMinute(30)->by('profile-update:'.(Auth::id() ?? $request->ip())));
+        RateLimiter::for('certificate-upload', fn (Request $request): Limit => Limit::perHour(10)->by('certificate-upload:'.(Auth::id() ?? $request->ip())));
+        RateLimiter::for('geocode-retry', fn (Request $request): Limit => Limit::perHour(3)->by('geocode-retry:'.(Auth::id() ?? $request->ip())));
+        RateLimiter::for('profile-public', fn (Request $request): Limit => Limit::perMinute(120)->by('profile-public:'.$request->ip()));
+    }
+
+    /**
+     * Bramka panelu fachowca (zadanie 004): dostęp do tras `/panel/profil*` i `/panel/zaswiadczenia*`
+     * ma tylko konto z rolą `specialist` (pracownik `technician` i administrator nie).
+     * Szczegółowe prawa do profilu i zaświadczeń sprawdzają Policies.
+     */
+    private function registerGates(): void
+    {
+        Gate::define('manage-profile', fn (User $user): bool => $user->hasRole(UserRole::Specialist->value));
     }
 }

@@ -24,6 +24,9 @@ class NominatimProvider implements GeocodingProvider
 {
     private const PUBLIC_HOST = 'nominatim.openstreetmap.org';
 
+    /** Największa przyjmowana odpowiedź (bajty). Odpowiedź dla `limit=1` ma kilkaset bajtów; więcej to błąd lub atak. */
+    private const MAX_RESPONSE_BYTES = 65536;
+
     /**
      * Czy można wysyłać zapytania: ustawiony poprawny adres kontaktowy albo własny serwer Nominatim (inny host).
      */
@@ -50,6 +53,7 @@ class NominatimProvider implements GeocodingProvider
                 ->timeout((int) config('geocoding.timeout'))
                 ->connectTimeout((int) config('geocoding.connect_timeout'))
                 ->acceptJson()
+                ->withoutRedirecting()
                 ->get(rtrim((string) config('geocoding.base_url'), '/').'/search', $this->parameters($query));
         } catch (ConnectionException) {
             return ProviderResult::unavailable('network', (int) config('geocoding.cooldown_seconds'));
@@ -111,6 +115,11 @@ class NominatimProvider implements GeocodingProvider
 
         if ($response->failed()) {
             return ProviderResult::unavailable('http_'.$status, (int) config('geocoding.cooldown_seconds'));
+        }
+
+        // Przekierowania są wyłączone (`withoutRedirecting`), a zbyt duża odpowiedź jest odrzucana przed dekodowaniem.
+        if (strlen($response->body()) > self::MAX_RESPONSE_BYTES) {
+            return ProviderResult::unavailable('bad_response', (int) config('geocoding.cooldown_seconds'));
         }
 
         $data = $response->json();

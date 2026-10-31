@@ -12,6 +12,11 @@ import focusOnLoad from './alpine/focusOnLoad';
 import dismissible from './alpine/dismissible';
 import challengeMode from './alpine/challengeMode';
 import disclosure from './alpine/disclosure';
+import localityCombobox from './alpine/localityCombobox';
+import servicesMatrix from './alpine/servicesMatrix';
+import charCounter from './alpine/charCounter';
+import certificateUpload from './alpine/certificateUpload';
+import confirmDelete from './alpine/confirmDelete';
 
 Alpine.data('passwordToggle', passwordToggle);
 Alpine.data('formLock', formLock);
@@ -23,6 +28,11 @@ Alpine.data('focusOnLoad', focusOnLoad);
 Alpine.data('dismissible', dismissible);
 Alpine.data('challengeMode', challengeMode);
 Alpine.data('disclosure', disclosure);
+Alpine.data('localityCombobox', localityCombobox);
+Alpine.data('servicesMatrix', servicesMatrix);
+Alpine.data('charCounter', charCounter);
+Alpine.data('certificateUpload', certificateUpload);
+Alpine.data('confirmDelete', confirmDelete);
 
 window.Alpine = Alpine;
 Alpine.start();

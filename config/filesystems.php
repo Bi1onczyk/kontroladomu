@@ -33,7 +33,8 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Nigdy nie wydajemy plików przez podpisane adresy (temporaryUrl): zaświadczenia tylko przez kontroler z Policy.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
